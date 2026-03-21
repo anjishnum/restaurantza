@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 export default function UploadPhotos({ onFilesSelected }) {
   const fileInputRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleUploadClick = () => {
     fileInputRef.current.click();
@@ -9,20 +10,84 @@ export default function UploadPhotos({ onFilesSelected }) {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    console.log('Selected files in component:', files);
+    handleFiles(files);
+  };
+
+  const handleFiles = (files) => {
     if (onFilesSelected) {
       onFilesSelected(files);
+    }
+    // Clear input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    console.log('Dropped files:', files);
+    if (files.length > 0) {
+      handleFiles(files);
     }
   };
 
   return (
     <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-      <button
-        onClick={handleUploadClick}
-        className="bg-white px-4 py-2 rounded-lg shadow-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer border border-gray-100"
+      <div
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`
+          flex flex-col items-center justify-center
+          p-4 rounded-xl border-2 border-dashed transition-all duration-200
+          ${isDragging
+            ? 'bg-blue-50 border-blue-400 scale-105 shadow-xl'
+            : 'bg-white border-gray-200 shadow-lg hover:border-gray-300'
+          }
+        `}
       >
-        Upload photos
-      </button>
+        <div className="text-center mb-2">
+          <p className="text-sm font-semibold text-gray-700">Add Photos</p>
+          <p className="text-xs text-gray-500">Click or drag & drop</p>
+        </div>
+
+        <button
+          onClick={handleUploadClick}
+          className={`
+            px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer
+            ${isDragging
+              ? 'bg-blue-500 text-white'
+              : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+            }
+          `}
+        >
+          Select Files
+        </button>
+      </div>
+
       <input
         type="file"
         ref={fileInputRef}
@@ -34,3 +99,4 @@ export default function UploadPhotos({ onFilesSelected }) {
     </div>
   );
 }
+
