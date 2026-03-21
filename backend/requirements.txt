@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-multipart
+exif
+boto3
+psycopg2-binary
+python-dotenv

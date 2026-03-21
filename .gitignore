@@ -7,9 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+./frontend/node_modules
+./backend/venv
+./backend/.env
+./frontend/.env
+./frontend/dist
 *.local
 
 # Editor directories and files
