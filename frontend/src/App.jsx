@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useQueryClient } from '@tanstack/react-query';
 import UploadPhotos from './components/UploadPhotos';
+import UploadStatus from './components/UploadStatus';
 import { useUploadPhoto } from './hooks/useUploadPhoto';
 import { usePhotos } from './hooks/usePhotos';
 
@@ -11,6 +12,7 @@ export default function App() {
   const mapRef = useRef(null);
   const markersRef = useRef([]); // To track and remove markers
   const queryClient = useQueryClient();
+  const [notifications, setNotifications] = useState([]);
 
   const { data: photos = [] } = usePhotos();
   const { mutate: uploadPhoto } = useUploadPhoto();
@@ -88,16 +90,32 @@ export default function App() {
     });
   }, [photos]);
 
+  const addNotification = (type, message) => {
+    const id = Date.now() + Math.random().toString(36).substring(7);
+    setNotifications((prev) => [{ id, type, message }, ...prev]);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
   const handleFilesSelected = (files) => {
     console.log('App received files:', files);
     files.forEach((file) => {
       uploadPhoto(file, {
         onSuccess: (data) => {
           console.log('Successfully uploaded:', data);
+          addNotification('success', `"${file.name}" uploaded successfully.`);
           // Invalidate the photos query to refetch new markers
           queryClient.invalidateQueries({ queryKey: ['photos'] });
         },
-        onError: (err) => console.error('Upload failed:', err),
+        onError: (err) => {
+          console.error('Upload failed:', err);
+          const errorMessage = err?.data?.detail 
+            || err?.message 
+            || 'An unexpected error occurred while uploading.';
+          addNotification('error', `Failed to upload "${file.name}": ${errorMessage}`);
+        },
       });
     });
   };
@@ -109,7 +127,15 @@ export default function App() {
         ref={mapContainer}
         className="w-full h-full absolute inset-0"
       />
+      
+      {/* UI Overlay */}
       <UploadPhotos onFilesSelected={handleFilesSelected} />
+      
+      <UploadStatus 
+        notifications={notifications} 
+        onClearNotification={removeNotification} 
+      />
     </div>
   );
 }
+

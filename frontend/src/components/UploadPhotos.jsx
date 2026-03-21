@@ -70,8 +70,8 @@ export default function UploadPhotos({ onFilesSelected }) {
         `}
       >
         <div className="text-center mb-2">
-          <p className="text-sm font-semibold text-gray-700">Add Photos</p>
-          <p className="text-xs text-gray-500">Click or drag & drop</p>
+          <p className="text-base font-semibold text-gray-700">Add Photos</p>
+          <p className="text-sm text-gray-500">Click or drag & drop</p>
         </div>
 
         <button
