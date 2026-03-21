@@ -1,0 +1,116 @@
+/* Custom Map Markers */
+.marker-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.pulse-marker {
+  width: 12px;
+  height: 12px;
+  background-color: #ff3b30;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.8);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+/* The pulsing outer ring */
+.pulse-marker::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #ff3b30;
+  opacity: 0.6;
+  animation: pulse-animation 2s infinite ease-out;
+  z-index: -1;
+  border: 2px solid transparent;
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* Smooth scale-in hover effect */
+.pulse-marker:hover {
+  transform: scale(1.6);
+  z-index: 10;
+}
+
+/* Premium Popup Styling */
+.custom-popup .maplibregl-popup-content {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 18px !important;
+  padding: 10px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  animation: popup-reveal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.custom-popup .maplibregl-popup-tip {
+  border-top-color: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+}
+
+@keyframes popup-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.popup-image-container {
+  overflow: hidden;
+  border-radius: 12px;
+  width: 100%;
+  height: 180px;
+  background: #f0f0f0;
+}
+
+.popup-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.custom-popup:hover .popup-image {
+  transform: scale(1.1);
+}
+
+.popup-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  padding-left: 4px;
+}
+
+.popup-date {
+  font-size: 0.65rem;
+  color: #4a4a4a;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

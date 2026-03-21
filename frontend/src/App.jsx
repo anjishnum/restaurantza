@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './Map.css';
 import { useQueryClient } from '@tanstack/react-query';
 import UploadPhotos from './components/UploadPhotos';
 import UploadStatus from './components/UploadStatus';
@@ -26,7 +27,7 @@ export default function App() {
         container: mapContainer.current,
         style: 'https://tiles.openfreemap.org/styles/bright',
         center: [77.5775, 12.9629],
-        zoom: 10,
+        zoom: 11,
         projection: 'mercator'
       });
 
@@ -59,8 +60,12 @@ export default function App() {
     photos.forEach(photo => {
       const { lon, lat } = photo.location;
 
-      // Create a marker
-      const marker = new maplibregl.Marker({ color: '#ff0000' })
+      // Create a marker with a custom element
+      const markerEl = document.createElement('div');
+      markerEl.className = 'marker-container';
+      markerEl.innerHTML = '<div class="pulse-marker"></div>';
+
+      const marker = new maplibregl.Marker({ element: markerEl })
         .setLngLat([lon, lat])
         .addTo(mapRef.current);
 
@@ -68,21 +73,25 @@ export default function App() {
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
-        maxWidth: '200px',
-        offset: [0, -32]
+        maxWidth: '280px',
+        offset: [0, -15],
+        className: 'custom-popup'
       }).setHTML(`
-        <div class="p-1">
-          <img src="${photo.url}" class="rounded h-32 w-full object-cover" />
-          <p class="text-xs pt-1">${photo.captured_at ? new Date(photo.captured_at).toLocaleString() : 'No timestamp'}</p>
+        <div class="popup-image-container">
+          <img src="${photo.url}" class="popup-image" />
+        </div>
+        <div class="popup-info">
+          <div class="popup-date">
+            ${photo.captured_at ? new Date(photo.captured_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No timestamp'}
+          </div>
         </div>
       `);
 
       // Hover logic
-      const el = marker.getElement();
-      el.addEventListener('mouseenter', () => {
+      markerEl.addEventListener('mouseenter', () => {
         popup.setLngLat([lon, lat]).addTo(mapRef.current);
       });
-      el.addEventListener('mouseleave', () => {
+      markerEl.addEventListener('mouseleave', () => {
         popup.remove();
       });
 
@@ -111,8 +120,8 @@ export default function App() {
         },
         onError: (err) => {
           console.error('Upload failed:', err);
-          const errorMessage = err?.data?.detail 
-            || err?.message 
+          const errorMessage = err?.data?.detail
+            || err?.message
             || 'An unexpected error occurred while uploading.';
           addNotification('error', `Failed to upload "${file.name}": ${errorMessage}`);
         },
@@ -127,13 +136,13 @@ export default function App() {
         ref={mapContainer}
         className="w-full h-full absolute inset-0"
       />
-      
+
       {/* UI Overlay */}
       <UploadPhotos onFilesSelected={handleFilesSelected} />
-      
-      <UploadStatus 
-        notifications={notifications} 
-        onClearNotification={removeNotification} 
+
+      <UploadStatus
+        notifications={notifications}
+        onClearNotification={removeNotification}
       />
     </div>
   );
