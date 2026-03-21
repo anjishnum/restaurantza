@@ -11,6 +11,7 @@ from exif import Image
 import boto3
 import psycopg2
 from dotenv import load_dotenv
+from botocore.config import Config
 
 load_dotenv()
 
@@ -45,13 +46,14 @@ if raw_db_url and "@" in raw_db_url:
 else:
     DATABASE_URL = raw_db_url
 
-# Initialize S3 Client (use us-east-1 as it's standard for S3-compatible providers)
+# Initialize S3 Client
 s3_client = boto3.client(
     's3',
     endpoint_url=S3_ENDPOINT,
     aws_access_key_id=S3_ACCESS_KEY,
     aws_secret_access_key=S3_SECRET_KEY,
-    region_name="us-east-1"
+    region_name="ap-south-1",
+    config=Config(signature_version='s3v4')
 )
 
 def convert_to_decimal(coords, ref):
@@ -132,6 +134,57 @@ async def upload_restaurant_photo(file: UploadFile = File(...)):
         "path": storage_path,
         "location": {"lat": lat, "lon": lon}
     }
+
+@app.get("/photos")
+async def get_photos():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        # Extract ID, storage_path, Lon, Lat, and captured_at
+        # Cast location geography to geometry to use ST_X/ST_Y
+        query = """
+        SELECT 
+            id, 
+            storage_path, 
+            ST_X(location::geometry) as lon, 
+            ST_Y(location::geometry) as lat, 
+            captured_at 
+        FROM restaurantza_photos
+        ORDER BY created_at DESC;
+        """
+        cur.execute(query)
+        rows = cur.fetchall()
+        
+        photos = []
+
+        for row in rows:
+            storage_path = row[1]
+            try:
+                # Generate a pre-signed URL (valid for 1 hour by default)
+                url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': BUCKET_NAME, 'Key': storage_path},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL for {storage_path}: {e}")
+                url = None
+
+            photos.append({
+                "id": str(row[0]),
+                "url": url,
+                "location": {"lon": row[2], "lat": row[3]},
+                "captured_at": row[4]
+            })
+            
+        cur.close()
+        conn.close()
+        return photos
+    except Exception as e:
+        print(f"Database Fetch Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Database Fetch Failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
