@@ -143,13 +143,16 @@ async def get_photos():
         
         # Extract ID, storage_path, Lon, Lat, and captured_at
         # Cast location geography to geometry to use ST_X/ST_Y
+        # NOTE: Data is stored with IST values but labeled as UTC (+00).
+        # We correct this by treating the stored timestamp as IST and converting back to UTC.
         query = """
         SELECT 
             id, 
             storage_path, 
             ST_X(location::geometry) as lon, 
             ST_Y(location::geometry) as lat, 
-            captured_at 
+            (captured_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as captured_at,
+            (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as created_at
         FROM restaurantza_photos
         ORDER BY created_at DESC;
         """
@@ -175,7 +178,8 @@ async def get_photos():
                 "id": str(row[0]),
                 "url": url,
                 "location": {"lon": row[2], "lat": row[3]},
-                "captured_at": row[4]
+                "captured_at": row[4],
+                "created_at": row[5]
             })
             
         cur.close()
