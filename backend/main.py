@@ -35,36 +35,20 @@ S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
 S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
 BUCKET_NAME = "restaurantza-images"
 
-# Parse database URL and handle special characters manually
-raw_db_url = os.getenv("DATABASE_URL") or ""
-db_params = {}
-
-if raw_db_url.startswith("postgresql://"):
-    # 1. Strip the prefix
-    trimmed = raw_db_url.replace("postgresql://", "", 1)
-    # 2. Split into credentials and host/db
-    if "@" in trimmed:
-        creds, rest = trimmed.rsplit("@", 1)
-        # 3. Handle host/db
-        host_port, dbname = rest.split("/", 1) if "/" in rest else (rest, "postgres")
-        host = host_port.split(":", 1)[0] if ":" in host_port else host_port
-        port = host_port.split(":", 1)[1] if ":" in host_port else "5432"
-        # 4. Handle user/pass
-        user = creds.split(":", 1)[0] if ":" in creds else creds
-        password = creds.split(":", 1)[1] if ":" in creds else ""
-        
-        db_params = {
-            "user": user,
-            "password": password,
-            "host": host,
-            "port": port,
-            "dbname": dbname
-        }
-    else:
-        # Fallback for simple URLs
+# Get raw database URL and handle special characters in password
+raw_db_url = os.getenv("DATABASE_URL")
+if raw_db_url and "@" in raw_db_url:
+    try:
+        # Split on the last @ to separate credentials from host
+        prefix, rest = raw_db_url.rsplit("@", 1)
+        # Split prefix to get 'postgresql://user:pass'
+        protocol_user, password = prefix.rsplit(":", 1)
+        # Encode password and rebuild URL
+        DATABASE_URL = f"{protocol_user}:{quote(password)}@{rest}"
+    except Exception:
         DATABASE_URL = raw_db_url
 else:
-    DATABASE_URL = raw_db_url # Fallback for local dev if simple
+    DATABASE_URL = raw_db_url
 
 # Initialize S3 Client
 s3_client = boto3.client(
@@ -128,10 +112,7 @@ async def upload_restaurant_photo(file: UploadFile = File(...)):
     # 4. Save Metadata to PostgreSQL (PostGIS)
     try:
         print(f"Connecting to database...")
-        if db_params:
-            conn = psycopg2.connect(**db_params)
-        else:
-            conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
         
         insert_query = """
@@ -161,10 +142,7 @@ async def upload_restaurant_photo(file: UploadFile = File(...)):
 @app.get("/photos")
 async def get_photos():
     try:
-        if db_params:
-            conn = psycopg2.connect(**db_params)
-        else:
-            conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
         
         # Extract ID, storage_path, Lon, Lat, and captured_at
